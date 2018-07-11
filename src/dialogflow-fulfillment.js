@@ -442,18 +442,20 @@ class WebhookClient {
       this.responseMessages_ = [new Text(' ')].concat(messages);
     }
 
-    // if there is only text, send response
-    // if there is a payload, send the payload for the repsonse
-    // if platform supports messages, send messages
-    const payload = this.existingPayload_(requestSource);
-    if (messages.length === 1 &&
-      messages[0] instanceof Text) {
+    // Get all developer payloads, for platforms and custom defined
+    const payloads = this.existingPayloads_();
+
+    const textOnly = messages.length === 1 && messages[0] instanceof Text;
+    const platformSupportsMessages = !this.requestSource ||
+      SUPPORTED_RICH_MESSAGE_PLATFORMS.includes(this.requestSource);
+    const hasPayloads = payloads.length;
+
+    if (textOnly) {
       this.client.sendTextResponse_();
-    } else if (payload) {
-      this.client.sendPayloadResponse_(payload, requestSource);
-    } else if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(this.requestSource) > -1
-      || this.requestSource === null) {
+    } else if (platformSupportsMessages && !hasPayloads) {
       this.client.sendMessagesResponse_(requestSource);
+    } else if (platformSupportsMessages && hasPayloads) {
+      this.client.sendPayloadsAndMessagesResponse_(payloads, requestSource);
     } else {
       throw new Error(`No responses defined for platform: ${this.requestSource}`);
     }
@@ -511,6 +513,18 @@ class WebhookClient {
       }
     }
     return existingPayload;
+  }
+
+  /**
+   * Find all existing payload responses
+   *
+   * @return {Array} Payload responses (can be empty)
+   * @private
+   */
+  existingPayloads_() {
+    return this.responseMessages_
+      .filter((response) => response instanceof Payload)
+      .map((response) => response);
   }
 }
 

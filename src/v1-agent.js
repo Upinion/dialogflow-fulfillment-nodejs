@@ -176,6 +176,28 @@ class V1Agent {
   }
 
   /**
+   * Send v1 response to Dialogflow fulfillment webhook request based on developer
+   * defined response messages and payloads
+   *
+   * @param {Array} payloads
+   * @param {string} requestSource string indicating the source of the initial request
+   * @private
+   */
+  sendPayloadsAndMessagesResponse_(payloads, requestSource) {
+    const data = {};
+    payloads.forEach((payload) => {
+      if (payload.platform) {
+        Object.assign(data, payload.getPayload_(payload.platform));
+      }
+    });
+
+    this.sendJson_({
+      messages: this.buildResponseMessages_(requestSource),
+      data,
+    });
+  }
+
+  /**
    * Send v1 response to Dialogflow fulfillment webhook request
    *
    * @param {Object} responseJson JSON to send to Dialogflow
